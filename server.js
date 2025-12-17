@@ -297,6 +297,7 @@ app.post('/api/buscar-dni', authenticateApiOrSession, async (req, res) => {
 
     let dniEncontrado = dni;
     let datosDniPeru = null;
+    let debugErrors = {};
 
     try {
         // 1. Intentar búsqueda en dniperu.com (Fuente Primaria para Nombres, Secundaria para DNI)
@@ -322,7 +323,8 @@ app.post('/api/buscar-dni', authenticateApiOrSession, async (req, res) => {
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                     'Origin': 'https://dniperu.com',
                     'Referer': 'https://dniperu.com/'
-                }
+                },
+                timeout: 5000 // 5s timeout to avoid hanging
             });
 
             if (response.data && response.data.success && response.data.data && response.data.data.resultados && response.data.data.resultados.length > 0) {
@@ -330,10 +332,12 @@ app.post('/api/buscar-dni', authenticateApiOrSession, async (req, res) => {
                 dniEncontrado = datosDniPeru.numero; // Actualizar DNI encontrado si buscamos por nombre
             } else {
                  console.log('DniPeru returned no results or success=false');
+                 debugErrors.dniPeru = 'No results or success=false';
             }
         } catch (dniPeruError) {
             console.warn('Advertencia: Falló la consulta a DniPeru:', dniPeruError.message);
-            // No lanzamos error aquí para permitir intentar con Factiliza si tenemos DNI
+            debugErrors.dniPeru = dniPeruError.message;
+            if (dniPeruError.response) debugErrors.dniPeruStatus = dniPeruError.response.status;
         }
 
         // 2. Si tenemos un DNI (ya sea del input o de DniPeru), consultamos Factiliza
@@ -342,7 +346,8 @@ app.post('/api/buscar-dni', authenticateApiOrSession, async (req, res) => {
                 const factilizaResponse = await axios.get(`https://api.factiliza.com/v1/dni/info/${dniEncontrado}`, {
                     headers: {
                         'Authorization': `Bearer ${process.env.FACTILIZA_TOKEN}`
-                    }
+                    },
+                    timeout: 5000
                 });
 
                 if (factilizaResponse.data && factilizaResponse.data.success) {
@@ -352,11 +357,16 @@ app.post('/api/buscar-dni', authenticateApiOrSession, async (req, res) => {
                         data: factilizaResponse.data.data,
                         original_results: datosDniPeru ? [datosDniPeru] : []
                     });
+                } else {
+                    debugErrors.factiliza = 'Success false or no data';
                 }
             } catch (factilizaError) {
                 console.error('Error fetching from Factiliza:', factilizaError.message);
-                // Si falla Factiliza, continuamos para devolver lo que tengamos de DniPeru
+                debugErrors.factiliza = factilizaError.message;
+                if (factilizaError.response) debugErrors.factilizaStatus = factilizaError.response.status;
             }
+        } else {
+            debugErrors.logic = 'No DNI found to query Factiliza (Name search failed)';
         }
 
         // 3. Respuesta final (Fallback)
@@ -371,7 +381,11 @@ app.post('/api/buscar-dni', authenticateApiOrSession, async (req, res) => {
         }
 
         // Si llegamos aquí, falló todo
-        res.status(404).json({ success: false, message: 'No se encontraron resultados en ninguna fuente.' });
+        res.status(404).json({ 
+            success: false, 
+            message: 'No se encontraron resultados en ninguna fuente.',
+            debug: debugErrors
+        });
 
     } catch (error) {
         console.error('Error fetching data:', error.message);
