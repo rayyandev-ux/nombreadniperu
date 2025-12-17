@@ -57,7 +57,7 @@ document.getElementById('dniForm').addEventListener('submit', async (e) => {
             `;
 
             // Handle enriched Factiliza data
-            if (data.source === 'factiliza' && data.data) {
+            if ((data.source === 'factiliza' || data.source === 'factiliza_via_name') && data.data) {
                 const p = data.data;
                 resultContent.innerHTML = `
                     <div class="bg-blue-600 px-4 py-3 flex justify-between items-center">
