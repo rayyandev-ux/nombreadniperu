@@ -1,0 +1,7 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 4, "column": 0}, "map": {"version":3,"sources":["file:///F:/Proyectos/dniAPI/lib/utils.ts"],"sourcesContent":["import { type ClassValue, clsx } from \"clsx\"\nimport { twMerge } from \"tailwind-merge\"\n \nexport function cn(...inputs: ClassValue[]) {\n  return twMerge(clsx(inputs))\n}\n"],"names":[],"mappings":";;;;AAAA;AACA;;;AAEO,SAAS,GAAG,GAAG,MAAoB;IACxC,OAAO,IAAA,sKAAO,EAAC,IAAA,6IAAI,EAAC;AACtB"}},
+    {"offset": {"line": 19, "column": 0}, "map": {"version":3,"sources":["file:///F:/Proyectos/dniAPI/app/layout.tsx"],"sourcesContent":["import type { Metadata } from \"next\";\nimport \"./globals.css\";\nimport { cn } from \"@/lib/utils\";\n\nexport const metadata: Metadata = {\n  title: \"raean API\",\n  description: \"API de búsqueda de DNI y RUC\",\n};\n\nexport default function RootLayout({\n  children,\n}: {\n  children: React.ReactNode;\n}) {\n  return (\n    <html lang=\"es\" className=\"dark\">\n      <body\n        className={cn(\n          \"min-h-screen bg-background font-sans antialiased\",\n        )}\n      >\n        {children}\n      </body>\n    </html>\n  );\n}\n"],"names":[],"mappings":";;;;;;;AAEA;;;;AAEO,MAAM,WAAqB;IAChC,OAAO;IACP,aAAa;AACf;AAEe,SAAS,WAAW,EACjC,QAAQ,EAGT;IACC,qBACE,8OAAC;QAAK,MAAK;QAAK,WAAU;kBACxB,cAAA,8OAAC;YACC,WAAW,IAAA,kHAAE,EACX;sBAGD;;;;;;;;;;;AAIT"}}]
+}

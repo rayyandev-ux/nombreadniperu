@@ -1,0 +1,6 @@
+{
+  "version": 3,
+  "sources": [],
+  "sections": [
+    {"offset": {"line": 46, "column": 0}, "map": {"version":3,"sources":["file:///F:/Proyectos/dniAPI/app/api/logout/route.ts"],"sourcesContent":["import { NextResponse } from 'next/server';\nimport { cookies } from 'next/headers';\n\nexport async function POST() {\n  const cookieStore = await cookies();\n  cookieStore.delete('auth_token');\n  return NextResponse.json({ success: true, message: 'Sesión cerrada correctamente' });\n}\n"],"names":[],"mappings":";;;;AAAA;AACA;;;AAEO,eAAe;IACpB,MAAM,cAAc,MAAM,IAAA,4IAAO;IACjC,YAAY,MAAM,CAAC;IACnB,OAAO,gJAAY,CAAC,IAAI,CAAC;QAAE,SAAS;QAAM,SAAS;IAA+B;AACpF"}}]
+}
