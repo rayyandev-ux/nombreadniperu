@@ -13,15 +13,25 @@ require('dotenv').config();
 const app = express();
 const PORT = process.env.PORT || 3000;
 
+// Hardcoded fallback DB URL as a safety net if env vars fail
+const FALLBACK_DB_URL = "postgresql://neondb_owner:npg_IgmA0o2YBWte@ep-lively-bread-ae6sluif-pooler.c-2.us-east-2.aws.neon.tech/neondb?channel_binding=require&sslmode=require";
+
+// DIAGNOSTICS: Log available environment variables (Keys only)
+console.log('Environment Variables Loaded:', Object.keys(process.env).filter(key => !key.startsWith('npm_')));
+
 // Configuración de Base de Datos (PostgreSQL)
-if (!process.env.DATABASE_URL) {
-    console.error('CRITICAL ERROR: DATABASE_URL is missing in environment variables.');
-    console.error('If running locally, ensure .env file exists and has DATABASE_URL.');
-    console.error('If running on Netlify, ensure Environment Variables are set in Site Settings.');
+// Priority: 1. ENV Variable -> 2. Hardcoded Fallback
+const connectionString = process.env.DATABASE_URL || FALLBACK_DB_URL;
+
+if (!connectionString) {
+    console.error('CRITICAL ERROR: No database connection string available.');
+    throw new Error('DATABASE_URL is missing');
 }
 
+console.log('Using Database Connection:', connectionString.includes('pooler') ? 'Pooled Connection' : 'Direct Connection');
+
 const pool = new Pool({
-    connectionString: process.env.DATABASE_URL,
+    connectionString: connectionString,
     ssl: { rejectUnauthorized: false }
 });
 
