@@ -14,6 +14,12 @@ const app = express();
 const PORT = process.env.PORT || 3000;
 
 // Configuración de Base de Datos (PostgreSQL)
+if (!process.env.DATABASE_URL) {
+    console.error('CRITICAL ERROR: DATABASE_URL is missing in environment variables.');
+    console.error('If running locally, ensure .env file exists and has DATABASE_URL.');
+    console.error('If running on Netlify, ensure Environment Variables are set in Site Settings.');
+}
+
 const pool = new Pool({
     connectionString: process.env.DATABASE_URL,
     ssl: { rejectUnauthorized: false }
