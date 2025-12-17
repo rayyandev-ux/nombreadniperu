@@ -1,0 +1,19 @@
+{
+  "/_global-error/page": "/_global-error",
+  "/_not-found/page": "/_not-found",
+  "/api/buscar-dni/route": "/api/buscar-dni",
+  "/api/login/route": "/api/login",
+  "/api/logout/route": "/api/logout",
+  "/api/settings/route": "/api/settings",
+  "/api/tokens/[token]/route": "/api/tokens/[token]",
+  "/api/tokens/route": "/api/tokens",
+  "/api/verify-code/route": "/api/verify-code",
+  "/dashboard/api-keys/page": "/dashboard/api-keys",
+  "/dashboard/docs/page": "/dashboard/docs",
+  "/dashboard/page": "/dashboard",
+  "/dashboard/playground/page": "/dashboard/playground",
+  "/dashboard/settings/page": "/dashboard/settings",
+  "/dashboard/support/page": "/dashboard/support",
+  "/login/page": "/login",
+  "/page": "/"
+}

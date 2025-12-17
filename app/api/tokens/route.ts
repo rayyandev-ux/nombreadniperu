@@ -22,7 +22,7 @@ export async function GET() {
 
   try {
     const result = await pool.query('SELECT * FROM tokens ORDER BY created_at DESC');
-    const tokens = result.rows.map(t => ({
+    const tokens = result.rows.map((t: any) => ({
       ...t,
       displayToken: `...${t.token.slice(-10)}`,
       fullToken: t.token // In a real app, maybe don't send this unless requested explicitly

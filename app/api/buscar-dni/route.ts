@@ -63,9 +63,10 @@ export async function POST(request: Request) {
         cc_sig: cc_sig || '761d4f9306bc19a678a7b8708b1d0374e0ba967712748636ea722e25e6f6235c'
     };
 
-    if (auth.user?.user) { // If we have a user ID (from dashboard session or user-tied token)
+    const authUser = auth.user as any;
+    if (authUser?.user) { // If we have a user ID (from dashboard session or user-tied token)
         try {
-            const settingsRes = await pool.query('SELECT * FROM user_settings WHERE user_id = $1', [auth.user.user]);
+            const settingsRes = await pool.query('SELECT * FROM user_settings WHERE user_id = $1', [authUser.user]);
             if (settingsRes.rows.length > 0) {
                 const s = settingsRes.rows[0];
                 if (s.factiliza_token) factilizaToken = s.factiliza_token;

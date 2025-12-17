@@ -1,0 +1,7 @@
+1:"$Sreact.fragment"
+2:I[11522,["/_next/static/chunks/d8df9ac910120b51.js","/_next/static/chunks/6ab5cfdf2a4ab8d4.js","/_next/static/chunks/b70c2acfe835be27.js"],"SidebarProvider"]
+3:I[60313,["/_next/static/chunks/d8df9ac910120b51.js","/_next/static/chunks/6ab5cfdf2a4ab8d4.js","/_next/static/chunks/b70c2acfe835be27.js"],"AppSidebar"]
+4:I[11522,["/_next/static/chunks/d8df9ac910120b51.js","/_next/static/chunks/6ab5cfdf2a4ab8d4.js","/_next/static/chunks/b70c2acfe835be27.js"],"SidebarTrigger"]
+5:I[39756,["/_next/static/chunks/ff1a16fafef87110.js","/_next/static/chunks/247eb132b7f7b574.js"],"default"]
+6:I[37457,["/_next/static/chunks/ff1a16fafef87110.js","/_next/static/chunks/247eb132b7f7b574.js"],"default"]
+0:{"buildId":"I91JMEVoGxBUQ9SAYYZ3l","rsc":["$","$1","c",{"children":[[["$","script","script-0",{"src":"/_next/static/chunks/d8df9ac910120b51.js","async":true}],["$","script","script-1",{"src":"/_next/static/chunks/6ab5cfdf2a4ab8d4.js","async":true}],["$","script","script-2",{"src":"/_next/static/chunks/b70c2acfe835be27.js","async":true}]],["$","$L2",null,{"children":["$","div",null,{"className":"flex min-h-screen w-full bg-black text-foreground","children":[["$","$L3",null,{}],["$","main",null,{"className":"flex-1 overflow-auto","children":[["$","div",null,{"className":"flex items-center px-4 py-2 md:hidden","children":["$","$L4",null,{}]}],["$","$L5",null,{"parallelRouterKey":"children","template":["$","$L6",null,{}]}]]}]]}]}]]}],"loading":null,"isPartial":false}
