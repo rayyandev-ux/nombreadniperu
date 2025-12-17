@@ -288,6 +288,7 @@ const authenticateApiOrSession = async (req, res, next) => {
 };
 
 app.post('/api/buscar-dni', authenticateApiOrSession, async (req, res) => {
+    try {
     const { dni, nombres, apellido_paterno, apellido_materno, security, cc_token, cc_sig } = req.body;
 
     // Validación básica: al menos DNI o nombre completo
@@ -400,6 +401,8 @@ app.post('/api/buscar-dni', authenticateApiOrSession, async (req, res) => {
         message: 'No se encontraron resultados.',
         debug: debugErrors
     });
+
+    } catch (error) {
         console.error('Error fetching data:', error.message);
         if (error.response) {
             console.error('Response data:', error.response.data);
@@ -408,6 +411,17 @@ app.post('/api/buscar-dni', authenticateApiOrSession, async (req, res) => {
             res.status(500).json({ success: false, message: 'Error interno del servidor' });
         }
     }
+});
+
+// Endpoint Logout
+app.post('/api/logout', (req, res) => {
+    req.session.destroy((err) => {
+        if (err) {
+            return res.status(500).json({ success: false, message: 'Error al cerrar sesión' });
+        }
+        res.clearCookie('connect.sid'); // Nombre por defecto de la cookie de sesión
+        res.json({ success: true, message: 'Sesión cerrada correctamente' });
+    });
 });
 
 if (require.main === module) {

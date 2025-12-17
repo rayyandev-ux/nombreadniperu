@@ -239,5 +239,26 @@ async function deleteToken(token) {
 // Make deleteToken available globally for the inline onclick handler
 window.deleteToken = deleteToken;
 
+// Logout handler
+const logoutBtn = document.getElementById('logoutBtn');
+if (logoutBtn) {
+    logoutBtn.addEventListener('click', async () => {
+        if (!confirm('¿Desea cerrar sesión?')) return;
+        
+        try {
+            const res = await fetch('/api/logout', { method: 'POST' });
+            const data = await res.json();
+            if (data.success) {
+                window.location.href = '/login.html';
+            } else {
+                alert('Error al cerrar sesión');
+            }
+        } catch (error) {
+            console.error('Error:', error);
+            alert('Error de conexión');
+        }
+    });
+}
+
 // Load tokens on startup
 loadTokens();
