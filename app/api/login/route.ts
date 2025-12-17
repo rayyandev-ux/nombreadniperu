@@ -2,7 +2,9 @@ import { NextResponse } from 'next/server';
 import { pool } from '@/lib/db';
 import { Resend } from 'resend';
 
-const resend = new Resend(process.env.RESEND_API_KEY);
+// Provide a dummy key for build time if the env var is missing
+const resendApiKey = process.env.RESEND_API_KEY || 're_123456789';
+const resend = new Resend(resendApiKey);
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const MAIL_FROM = process.env.MAIL_FROM || 'onboarding@resend.dev';
