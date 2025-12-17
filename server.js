@@ -102,10 +102,13 @@ app.use(session({
     resave: false,
     saveUninitialized: false,
     cookie: { 
-        secure: process.env.NODE_ENV === 'production', // true en prod (Netlify https)
-        maxAge: 30 * 24 * 60 * 60 * 1000 // 30 días
+        secure: false, // Netlify handles HTTPS, but cookie secure=true can fail behind proxies if trust proxy is not set
+        maxAge: 30 * 24 * 60 * 60 * 1000, // 30 días
+        sameSite: 'lax' // Recommended for normal navigation
     } 
 }));
+
+app.set('trust proxy', 1); // Trust first proxy (Netlify) for secure cookies to work if we enabled them
 
 // Middleware para verificar autenticación de sesión
 const requireAuth = (req, res, next) => {

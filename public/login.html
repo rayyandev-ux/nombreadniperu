@@ -110,7 +110,7 @@
                 const data = await res.json();
 
                 if (data.success) {
-                    window.location.reload(); // Should redirect to main page now that session is valid
+                    window.location.href = '/'; // Explicitly redirect to root
                 } else {
                     throw new Error(data.message);
                 }
