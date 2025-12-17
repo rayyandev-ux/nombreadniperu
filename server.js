@@ -299,19 +299,44 @@ app.post('/api/buscar-dni', authenticateApiOrSession, async (req, res) => {
     let datosDniPeru = null;
     let debugErrors = {};
 
-    try {
-        // 1. Intentar búsqueda en dniperu.com (Fuente Primaria para Nombres, Secundaria para DNI)
+    // 1. Si tenemos DNI, vamos DIRECTO a Factiliza (Evitamos DniPeru y su bloqueo Cloudflare)
+    if (dni) {
+        try {
+            const factilizaResponse = await axios.get(`https://api.factiliza.com/v1/dni/info/${dni}`, {
+                headers: {
+                    'Authorization': `Bearer ${process.env.FACTILIZA_TOKEN}`
+                },
+                timeout: 5000
+            });
+
+            if (factilizaResponse.data && factilizaResponse.data.success) {
+                 return res.json({
+                    success: true,
+                    source: 'factiliza',
+                    data: factilizaResponse.data.data,
+                    original_results: []
+                });
+            } else {
+                debugErrors.factiliza = 'Success false or no data';
+            }
+        } catch (factilizaError) {
+            console.error('Error fetching from Factiliza:', factilizaError.message);
+            debugErrors.factiliza = factilizaError.message;
+            if (factilizaError.response) debugErrors.factilizaStatus = factilizaError.response.status;
+        }
+    }
+
+    // 2. Solo usamos DniPeru si buscamos por NOMBRE (como último recurso)
+    // OJO: DniPeru bloquea peticiones de servidor (Cloudflare 403). 
+    // Es muy probable que esto falle en Netlify a menos que usemos un proxy residencial o rotemos IPs.
+    if (!dni && (nombres || apellido_paterno || apellido_materno)) {
         try {
             const formData = new URLSearchParams();
             formData.append('action', 'buscar_dni');
             
-            if (dni) {
-                formData.append('dni', dni);
-            } else {
-                formData.append('nombres', nombres);
-                formData.append('apellido_paterno', apellido_paterno);
-                formData.append('apellido_materno', apellido_materno);
-            }
+            formData.append('nombres', nombres);
+            formData.append('apellido_paterno', apellido_paterno);
+            formData.append('apellido_materno', apellido_materno);
 
             formData.append('security', security || '37ea666f56');
             formData.append('cc_token', cc_token || 'f7ce510e99a3cb26b98d90c3514659ca');
@@ -322,16 +347,44 @@ app.post('/api/buscar-dni', authenticateApiOrSession, async (req, res) => {
                     'Content-Type': 'application/x-www-form-urlencoded',
                     'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
                     'Origin': 'https://dniperu.com',
-                    'Referer': 'https://dniperu.com/'
+                    'Referer': 'https://dniperu.com/',
+                    'X-Requested-With': 'XMLHttpRequest', // A veces ayuda a parecer AJAX real
+                    'Accept': 'application/json, text/javascript, */*; q=0.01',
+                    'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
+                    // Importante: No podemos falsear IPs fácilmente desde Netlify sin un proxy real
                 },
-                timeout: 5000 // 5s timeout to avoid hanging
+                timeout: 8000 // Aumentamos timeout un poco
             });
 
             if (response.data && response.data.success && response.data.data && response.data.data.resultados && response.data.data.resultados.length > 0) {
                 datosDniPeru = response.data.data.resultados[0];
-                dniEncontrado = datosDniPeru.numero; // Actualizar DNI encontrado si buscamos por nombre
+                
+                // Si encontramos DNI por nombre, intentamos enriquecer con Factiliza
+                if (datosDniPeru.numero) {
+                     try {
+                        const factilizaResponse = await axios.get(`https://api.factiliza.com/v1/dni/info/${datosDniPeru.numero}`, {
+                            headers: { 'Authorization': `Bearer ${process.env.FACTILIZA_TOKEN}` },
+                            timeout: 5000
+                        });
+                        if (factilizaResponse.data && factilizaResponse.data.success) {
+                            return res.json({
+                                success: true,
+                                source: 'factiliza_via_name',
+                                data: factilizaResponse.data.data,
+                                original_results: [datosDniPeru]
+                            });
+                        }
+                    } catch (err) { console.error('Factiliza enrichment failed', err.message); }
+                }
+                
+                return res.json({
+                    success: true,
+                    source: 'dniperu',
+                    data: datosDniPeru,
+                    original_results: [datosDniPeru]
+                });
+
             } else {
-                 console.log('DniPeru returned no results or success=false');
                  debugErrors.dniPeru = 'No results or success=false';
             }
         } catch (dniPeruError) {
@@ -339,55 +392,14 @@ app.post('/api/buscar-dni', authenticateApiOrSession, async (req, res) => {
             debugErrors.dniPeru = dniPeruError.message;
             if (dniPeruError.response) debugErrors.dniPeruStatus = dniPeruError.response.status;
         }
+    }
 
-        // 2. Si tenemos un DNI (ya sea del input o de DniPeru), consultamos Factiliza
-        if (dniEncontrado) {
-            try {
-                const factilizaResponse = await axios.get(`https://api.factiliza.com/v1/dni/info/${dniEncontrado}`, {
-                    headers: {
-                        'Authorization': `Bearer ${process.env.FACTILIZA_TOKEN}`
-                    },
-                    timeout: 5000
-                });
-
-                if (factilizaResponse.data && factilizaResponse.data.success) {
-                     return res.json({
-                        success: true,
-                        source: 'factiliza',
-                        data: factilizaResponse.data.data,
-                        original_results: datosDniPeru ? [datosDniPeru] : []
-                    });
-                } else {
-                    debugErrors.factiliza = 'Success false or no data';
-                }
-            } catch (factilizaError) {
-                console.error('Error fetching from Factiliza:', factilizaError.message);
-                debugErrors.factiliza = factilizaError.message;
-                if (factilizaError.response) debugErrors.factilizaStatus = factilizaError.response.status;
-            }
-        } else {
-            debugErrors.logic = 'No DNI found to query Factiliza (Name search failed)';
-        }
-
-        // 3. Respuesta final (Fallback)
-        if (datosDniPeru) {
-             return res.json({
-                success: true,
-                source: 'dniperu_fallback',
-                data: datosDniPeru,
-                original_results: [datosDniPeru],
-                message: 'Información básica obtenida. Detalles adicionales no disponibles.'
-            });
-        }
-
-        // Si llegamos aquí, falló todo
-        res.status(404).json({ 
-            success: false, 
-            message: 'No se encontraron resultados en ninguna fuente.',
-            debug: debugErrors
-        });
-
-    } catch (error) {
+    // Respuesta final de error
+    res.status(404).json({ 
+        success: false, 
+        message: 'No se encontraron resultados.',
+        debug: debugErrors
+    });
         console.error('Error fetching data:', error.message);
         if (error.response) {
             console.error('Response data:', error.response.data);
