@@ -295,75 +295,83 @@ app.post('/api/buscar-dni', authenticateApiOrSession, async (req, res) => {
         return res.status(400).json({ success: false, message: 'Debe ingresar DNI o Nombres y Apellidos completos' });
     }
 
+    let dniEncontrado = dni;
+    let datosDniPeru = null;
+
     try {
-        const formData = new URLSearchParams();
-        formData.append('action', 'buscar_dni');
-        
-        if (dni) {
-            formData.append('dni', dni);
-        } else {
-            formData.append('nombres', nombres);
-            formData.append('apellido_paterno', apellido_paterno);
-            formData.append('apellido_materno', apellido_materno);
+        // 1. Intentar búsqueda en dniperu.com (Fuente Primaria para Nombres, Secundaria para DNI)
+        try {
+            const formData = new URLSearchParams();
+            formData.append('action', 'buscar_dni');
+            
+            if (dni) {
+                formData.append('dni', dni);
+            } else {
+                formData.append('nombres', nombres);
+                formData.append('apellido_paterno', apellido_paterno);
+                formData.append('apellido_materno', apellido_materno);
+            }
+
+            formData.append('security', security || '37ea666f56');
+            formData.append('cc_token', cc_token || 'f7ce510e99a3cb26b98d90c3514659ca');
+            formData.append('cc_sig', cc_sig || '761d4f9306bc19a678a7b8708b1d0374e0ba967712748636ea722e25e6f6235c');
+
+            const response = await axios.post('https://dniperu.com/wp-admin/admin-ajax.php', formData, {
+                headers: {
+                    'Content-Type': 'application/x-www-form-urlencoded',
+                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
+                    'Origin': 'https://dniperu.com',
+                    'Referer': 'https://dniperu.com/'
+                }
+            });
+
+            if (response.data && response.data.success && response.data.data && response.data.data.resultados && response.data.data.resultados.length > 0) {
+                datosDniPeru = response.data.data.resultados[0];
+                dniEncontrado = datosDniPeru.numero; // Actualizar DNI encontrado si buscamos por nombre
+            } else {
+                 console.log('DniPeru returned no results or success=false');
+            }
+        } catch (dniPeruError) {
+            console.warn('Advertencia: Falló la consulta a DniPeru:', dniPeruError.message);
+            // No lanzamos error aquí para permitir intentar con Factiliza si tenemos DNI
         }
 
-        formData.append('security', security || '37ea666f56');
-        formData.append('cc_token', cc_token || 'f7ce510e99a3cb26b98d90c3514659ca');
-        formData.append('cc_sig', cc_sig || '761d4f9306bc19a678a7b8708b1d0374e0ba967712748636ea722e25e6f6235c');
-
-        const response = await axios.post('https://dniperu.com/wp-admin/admin-ajax.php', formData, {
-            headers: {
-                'Content-Type': 'application/x-www-form-urlencoded',
-                'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                'Origin': 'https://dniperu.com',
-                'Referer': 'https://dniperu.com/'
-            }
-        });
-
-        // Si la búsqueda inicial fue exitosa y tenemos resultados
-        if (response.data && response.data.success && response.data.data && response.data.data.resultados && response.data.data.resultados.length > 0) {
-            const firstResult = response.data.data.resultados[0];
-            const dniEncontrado = firstResult.numero;
-
+        // 2. Si tenemos un DNI (ya sea del input o de DniPeru), consultamos Factiliza
+        if (dniEncontrado) {
             try {
-                // Segunda llamada a Factiliza
                 const factilizaResponse = await axios.get(`https://api.factiliza.com/v1/dni/info/${dniEncontrado}`, {
                     headers: {
                         'Authorization': `Bearer ${process.env.FACTILIZA_TOKEN}`
                     }
                 });
 
-                // Check if Factiliza logically succeeded
-                if (!factilizaResponse.data || !factilizaResponse.data.success) {
-                    throw new Error('Factiliza API returned unsuccessful response');
+                if (factilizaResponse.data && factilizaResponse.data.success) {
+                     return res.json({
+                        success: true,
+                        source: 'factiliza',
+                        data: factilizaResponse.data.data,
+                        original_results: datosDniPeru ? [datosDniPeru] : []
+                    });
                 }
-
-                // Devolvemos la respuesta de Factiliza combinada con la lista original si se desea, 
-                // o solo la respuesta de Factiliza como "mejor resultado".
-                // Aquí devolveremos una estructura que contenga ambos para mayor flexibilidad.
-                res.json({
-                    success: true,
-                    source: 'factiliza',
-                    data: factilizaResponse.data.data, // Datos detallados de Factiliza
-                    original_results: response.data.data.resultados // Resultados de la búsqueda por nombre
-                });
-                return;
-
             } catch (factilizaError) {
                 console.error('Error fetching from Factiliza:', factilizaError.message);
-                // Si falla Factiliza, devolvemos al menos lo que encontramos en dniperu
-                res.json({
-                    success: true,
-                    source: 'dniperu_fallback',
-                    data: firstResult,
-                    original_results: response.data.data.resultados,
-                    message: 'No se pudo obtener detalles adicionales de Factiliza. Se muestran datos básicos.'
-                });
-                return;
+                // Si falla Factiliza, continuamos para devolver lo que tengamos de DniPeru
             }
         }
 
-        res.json(response.data);
+        // 3. Respuesta final (Fallback)
+        if (datosDniPeru) {
+             return res.json({
+                success: true,
+                source: 'dniperu_fallback',
+                data: datosDniPeru,
+                original_results: [datosDniPeru],
+                message: 'Información básica obtenida. Detalles adicionales no disponibles.'
+            });
+        }
+
+        // Si llegamos aquí, falló todo
+        res.status(404).json({ success: false, message: 'No se encontraron resultados en ninguna fuente.' });
 
     } catch (error) {
         console.error('Error fetching data:', error.message);
