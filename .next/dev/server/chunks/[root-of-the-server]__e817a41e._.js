@@ -68,9 +68,11 @@ var __turbopack_async_dependencies__ = __turbopack_handle_async_dependencies__([
 ]);
 [__TURBOPACK__imported__module__$5b$externals$5d2f$pg__$5b$external$5d$__$28$pg$2c$__esm_import$29$__] = __turbopack_async_dependencies__.then ? (await __turbopack_async_dependencies__)() : __turbopack_async_dependencies__;
 ;
-const connectionString = process.env.DATABASE_URL;
-if (!connectionString) {
-    throw new Error('DATABASE_URL is missing');
+const connectionString = process.env.DATABASE_URL || 'postgresql://placeholder:placeholder@localhost:5432/placeholder';
+// Only throw in runtime (not build time) if we actually try to connect and fail, 
+// OR if you prefer, keep the check but make it optional for build
+if (!process.env.DATABASE_URL && ("TURBOPACK compile-time value", "development") !== 'production') {
+    console.warn('DATABASE_URL is missing - using placeholder for build/dev');
 }
 const pool = new __TURBOPACK__imported__module__$5b$externals$5d2f$pg__$5b$external$5d$__$28$pg$2c$__esm_import$29$__["Pool"]({
     connectionString,
@@ -112,7 +114,9 @@ var __turbopack_async_dependencies__ = __turbopack_handle_async_dependencies__([
 ;
 ;
 ;
-const resend = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$resend$2f$dist$2f$index$2e$mjs__$5b$app$2d$route$5d$__$28$ecmascript$29$__["Resend"](process.env.RESEND_API_KEY);
+// Provide a dummy key for build time if the env var is missing
+const resendApiKey = process.env.RESEND_API_KEY || 're_123456789';
+const resend = new __TURBOPACK__imported__module__$5b$project$5d2f$node_modules$2f$resend$2f$dist$2f$index$2e$mjs__$5b$app$2d$route$5d$__$28$ecmascript$29$__["Resend"](resendApiKey);
 const ADMIN_EMAIL = process.env.ADMIN_EMAIL;
 const ADMIN_PASSWORD = process.env.ADMIN_PASSWORD;
 const MAIL_FROM = process.env.MAIL_FROM || 'onboarding@resend.dev';

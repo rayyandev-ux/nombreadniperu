@@ -3,6 +3,8 @@ import { pool } from '@/lib/db';
 import axios from 'axios';
 import jwt from 'jsonwebtoken';
 import { cookies } from 'next/headers';
+// @ts-ignore
+import { searchDniPeru } from '@/utils/dniPeruAuth';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'secret';
 const API_TOKEN = process.env.API_TOKEN;
@@ -157,27 +159,13 @@ export async function POST(request: Request) {
         }
     }
 
-    // 2. Name Search (DniPeru)
+    // 2. Name Search (DniPeru) -> Solo si no hay DNI
     if (!dni && (nombres || apellido_paterno || apellido_materno)) {
         try {
-             const formData = new URLSearchParams();
-            formData.append('action', 'buscar_dni');
-            if(nombres) formData.append('nombres', nombres);
-            if(apellido_paterno) formData.append('apellido_paterno', apellido_paterno);
-            if(apellido_materno) formData.append('apellido_materno', apellido_materno);
-            formData.append('security', security || '37ea666f56');
-            formData.append('cc_token', cc_token || 'f7ce510e99a3cb26b98d90c3514659ca');
-            formData.append('cc_sig', cc_sig || '761d4f9306bc19a678a7b8708b1d0374e0ba967712748636ea722e25e6f6235c');
-
-            const response = await axios.post('https://dniperu.com/wp-admin/admin-ajax.php', formData, {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                    'Origin': 'https://dniperu.com',
-                    'Referer': 'https://dniperu.com/',
-                    'X-Requested-With': 'XMLHttpRequest'
-                },
-                timeout: 8000
+            const response = await searchDniPeru({
+                nombres,
+                apellido_paterno,
+                apellido_materno
             });
 
             if (response.data?.success && response.data.data?.resultados?.length > 0) {

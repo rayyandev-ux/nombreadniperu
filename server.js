@@ -287,9 +287,11 @@ const authenticateApiOrSession = async (req, res, next) => {
     }
 };
 
+const { searchDniPeru } = require('./utils/dniPeruAuth');
+
 app.post('/api/buscar-dni', authenticateApiOrSession, async (req, res) => {
     try {
-    const { dni, nombres, apellido_paterno, apellido_materno, security, cc_token, cc_sig } = req.body;
+    const { dni, nombres, apellido_paterno, apellido_materno } = req.body;
 
     // Validación básica: al menos DNI o nombre completo
     if (!dni && (!nombres || !apellido_paterno || !apellido_materno)) {
@@ -332,29 +334,10 @@ app.post('/api/buscar-dni', authenticateApiOrSession, async (req, res) => {
     // Es muy probable que esto falle en Netlify a menos que usemos un proxy residencial o rotemos IPs.
     if (!dni && (nombres || apellido_paterno || apellido_materno)) {
         try {
-            const formData = new URLSearchParams();
-            formData.append('action', 'buscar_dni');
-            
-            formData.append('nombres', nombres);
-            formData.append('apellido_paterno', apellido_paterno);
-            formData.append('apellido_materno', apellido_materno);
-
-            formData.append('security', security || '37ea666f56');
-            formData.append('cc_token', cc_token || 'f7ce510e99a3cb26b98d90c3514659ca');
-            formData.append('cc_sig', cc_sig || '761d4f9306bc19a678a7b8708b1d0374e0ba967712748636ea722e25e6f6235c');
-
-            const response = await axios.post('https://dniperu.com/wp-admin/admin-ajax.php', formData, {
-                headers: {
-                    'Content-Type': 'application/x-www-form-urlencoded',
-                    'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-                    'Origin': 'https://dniperu.com',
-                    'Referer': 'https://dniperu.com/',
-                    'X-Requested-With': 'XMLHttpRequest', // A veces ayuda a parecer AJAX real
-                    'Accept': 'application/json, text/javascript, */*; q=0.01',
-                    'Accept-Language': 'es-ES,es;q=0.9,en;q=0.8',
-                    // Importante: No podemos falsear IPs fácilmente desde Netlify sin un proxy real
-                },
-                timeout: 8000 // Aumentamos timeout un poco
+            const response = await searchDniPeru({
+                nombres,
+                apellido_paterno,
+                apellido_materno
             });
 
             if (response.data && response.data.success && response.data.data && response.data.data.resultados && response.data.data.resultados.length > 0) {
